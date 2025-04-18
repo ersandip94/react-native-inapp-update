@@ -23,15 +23,7 @@ npm install react-native-inapp-update
 yarn add react-native-inapp-update
 ```
 
-2. For Android, add the following to your `android/app/build.gradle`:
-
-```gradle
-dependencies {
-    implementation 'com.google.android.play:core:1.10.3'
-}
-```
-
-3. For iOS, no additional setup is required.
+2. For iOS, no additional setup is required.
 
 ## Usage
 
