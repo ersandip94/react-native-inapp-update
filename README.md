@@ -1,97 +1,139 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# React Native In-App Update
 
-# Getting Started
+A React Native library for handling in-app updates on both iOS and Android platforms. This library provides a simple way to check for app updates and force users to update when necessary.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Features
 
-## Step 1: Start Metro
+- Check for app updates on both iOS and Android
+- Force update when major version changes
+- Optional update alerts for minor version changes
+- Customizable alert messages and titles
+- Configurable version checking (major, minor, patch)
+- Uses native Android in-app update feature
+- iOS App Store version checking with country/region support
+- Automatic version detection using device info
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## Installation
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+1. Install the package:
 
-```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
+```bash
+npm install react-native-inapp-update
+# or
+yarn add react-native-inapp-update
 ```
 
-## Step 2: Build and run your app
+2. For Android, add the following to your `android/app/build.gradle`:
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+```gradle
+dependencies {
+    implementation 'com.google.android.play:core:1.10.3'
+}
 ```
 
-### iOS
+3. For iOS, no additional setup is required.
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+## Usage
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+### Basic Setup
 
-```sh
-bundle install
+```typescript
+import InAppUpdate from 'react-native-inapp-update';
+
+// Configure the library (optional)
+InAppUpdate.getInstance().configure({
+  forceUpdateTitle: 'Update Required',
+  forceUpdateMessage: 'Please update the app to continue using it.',
+  updateTitle: 'Update Available',
+  updateMessage: 'A new version is available. Would you like to update?',
+  checkMajorVersion: true,
+  checkMinorVersion: false,
+  checkPatchVersion: false,
+  appStoreId: 'YOUR_IOS_APP_STORE_ID',
+  playStoreId: 'YOUR_ANDROID_PACKAGE_NAME',
+  appStoreCountry: 'us', // Optional: specify App Store country (default: 'us')
+});
 ```
 
-Then, and every time you update your native dependencies, run:
+### Initialize on App Start
 
-```sh
-bundle exec pod install
+Add the following to your `App.tsx` or main component:
+
+```typescript
+import React, { useEffect } from 'react';
+import InAppUpdate from 'react-native-inapp-update';
+
+function App() {
+  useEffect(() => {
+    // Initialize and check for updates when app starts
+    InAppUpdate.getInstance().initialize();
+  }, []);
+
+  return (
+    // Your app components
+  );
+}
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+### Manual Update Check
 
-```sh
-# Using npm
-npm run ios
+```typescript
+// Option 1: Check for updates and show alerts if needed
+InAppUpdate.getInstance().showUpdateAlertIfNeeded();
 
-# OR using Yarn
-yarn ios
+// Option 2: Check for updates and handle the result yourself
+const updateInfo = await InAppUpdate.getInstance().checkForUpdate();
+if (updateInfo.updateAvailable) {
+  // Handle update available
+  console.log(`New version available: ${updateInfo.version}`);
+
+  // For Android, you can check if in-app update is available
+  if (Platform.OS === 'android' && updateInfo.isInAppUpdateAvailable) {
+    // Use the native module to start the update
+    const {InAppUpdateModule} = NativeModules;
+    await InAppUpdateModule.startImmediateUpdate(); // or startFlexibleUpdate()
+  } else {
+    // Show alert to open store
+    InAppUpdate.getInstance().showUpdateAlert();
+  }
+}
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+## Configuration Options
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+| Option             | Type    | Default                         | Description                                         |
+| ------------------ | ------- | ------------------------------- | --------------------------------------------------- |
+| forceUpdateTitle   | string  | 'Update Required'               | Title for force update alert                        |
+| forceUpdateMessage | string  | 'A new version is required...'  | Message for force update alert                      |
+| updateTitle        | string  | 'Update Available'              | Title for optional update alert                     |
+| updateMessage      | string  | 'A new version is available...' | Message for optional update alert                   |
+| checkMajorVersion  | boolean | true                            | Whether to check major version changes              |
+| checkMinorVersion  | boolean | false                           | Whether to check minor version changes              |
+| checkPatchVersion  | boolean | false                           | Whether to check patch version changes              |
+| appStoreId         | string  | -                               | iOS App Store ID                                    |
+| playStoreId        | string  | -                               | Android package name                                |
+| appStoreCountry    | string  | 'us'                            | iOS App Store country code (e.g., 'us', 'gb', 'jp') |
 
-## Step 3: Modify your app
+## How it Works
 
-Now that you have successfully run the app, let's make changes!
+- On iOS: The library checks the App Store for the latest version and compares it with the current version. You can specify the App Store country/region to check against.
+- On Android: The library checks if an in-app update is available through the Play Store API.
+- The library automatically detects the current app version using device info.
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+### Version Comparison
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+- Major version changes (e.g., 1.0.0 to 2.0.0) trigger a force update
+- Minor and patch version changes show an optional update alert
+- Version checking can be configured through the `configure` method
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+## Third-Party Dependencies
 
-## Congratulations! :tada:
+This library uses the following third-party packages:
 
-You've successfully run and modified your React Native App. :partying_face:
+- [react-native-device-info](https://github.com/react-native-device-info/react-native-device-info) - For detecting the current app version and device information. Licensed under MIT.
+- [Google Play Core Library](https://developer.android.com/guide/playcore) - For Android in-app updates. Licensed under Apache License 2.0.
+- [React Native](https://reactnative.dev/) - Core framework for building the library. Licensed under MIT.
 
-### Now what?
+## License
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+MIT
