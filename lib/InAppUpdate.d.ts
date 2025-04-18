@@ -9,6 +9,7 @@ interface UpdateConfig {
     appStoreId?: string;
     playStoreId?: string;
     appStoreCountry?: string;
+    maxUpdatePrompts?: number;
 }
 interface UpdateInfo {
     updateAvailable: boolean;
@@ -36,6 +37,9 @@ declare class InAppUpdate {
     private showForceUpdateAlert;
     private showUpdateAlert;
     checkForUpdate(currentVersion: string): Promise<UpdateInfo>;
+    private getUpdatePromptCount;
+    private incrementUpdatePromptCount;
+    private shouldShowUpdateAlert;
     showUpdateAlertIfNeeded(currentVersion: string): Promise<void>;
 }
 export default InAppUpdate;

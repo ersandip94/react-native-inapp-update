@@ -44,6 +44,7 @@ InAppUpdate.getInstance().configure({
   appStoreId: 'YOUR_IOS_APP_STORE_ID',
   playStoreId: 'YOUR_ANDROID_PACKAGE_NAME',
   appStoreCountry: 'us', // Optional: specify App Store country (default: 'us')
+  maxUpdatePrompts: 3, // Optional: show update alert maximum 3 times before waiting for next version
 });
 ```
 
@@ -93,18 +94,19 @@ if (updateInfo.updateAvailable) {
 
 ## Configuration Options
 
-| Option             | Type    | Default                         | Description                                         |
-| ------------------ | ------- | ------------------------------- | --------------------------------------------------- |
-| forceUpdateTitle   | string  | 'Update Required'               | Title for force update alert                        |
-| forceUpdateMessage | string  | 'A new version is required...'  | Message for force update alert                      |
-| updateTitle        | string  | 'Update Available'              | Title for optional update alert                     |
-| updateMessage      | string  | 'A new version is available...' | Message for optional update alert                   |
-| checkMajorVersion  | boolean | true                            | Whether to check major version changes              |
-| checkMinorVersion  | boolean | false                           | Whether to check minor version changes              |
-| checkPatchVersion  | boolean | false                           | Whether to check patch version changes              |
-| appStoreId         | string  | -                               | iOS App Store ID                                    |
-| playStoreId        | string  | -                               | Android package name                                |
-| appStoreCountry    | string  | 'us'                            | iOS App Store country code (e.g., 'us', 'gb', 'jp') |
+| Option             | Type    | Default                         | Description                                                                             |
+| ------------------ | ------- | ------------------------------- | --------------------------------------------------------------------------------------- |
+| forceUpdateTitle   | string  | 'Update Required'               | Title for force update alert                                                            |
+| forceUpdateMessage | string  | 'A new version is required...'  | Message for force update alert                                                          |
+| updateTitle        | string  | 'Update Available'              | Title for optional update alert                                                         |
+| updateMessage      | string  | 'A new version is available...' | Message for optional update alert                                                       |
+| checkMajorVersion  | boolean | true                            | Whether to check major version changes                                                  |
+| checkMinorVersion  | boolean | false                           | Whether to check minor version changes                                                  |
+| checkPatchVersion  | boolean | false                           | Whether to check patch version changes                                                  |
+| appStoreId         | string  | -                               | iOS App Store ID                                                                        |
+| playStoreId        | string  | -                               | Android package name                                                                    |
+| appStoreCountry    | string  | 'us'                            | iOS App Store country code (e.g., 'us', 'gb', 'jp')                                     |
+| maxUpdatePrompts   | number  | 3                               | Maximum number of times to show the update alert before waiting for next version change |
 
 ## How it Works
 
@@ -125,6 +127,7 @@ This library uses the following third-party packages:
 - [react-native-device-info](https://github.com/react-native-device-info/react-native-device-info) - For detecting the current app version and device information. Licensed under MIT.
 - [Google Play Core Library](https://developer.android.com/guide/playcore) - For Android in-app updates. Licensed under Apache License 2.0.
 - [React Native](https://reactnative.dev/) - Core framework for building the library. Licensed under MIT.
+- [@react-native-async-storage/async-storage](https://github.com/react-native-async-storage/async-storage) - For persisting update prompt counts. Licensed under MIT.
 
 ## License
 

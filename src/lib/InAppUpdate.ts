@@ -1,6 +1,7 @@
 import {Platform, Alert, Linking} from 'react-native';
 import {NativeModules} from 'react-native';
 import DeviceInfo from 'react-native-device-info';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface UpdateConfig {
   forceUpdateTitle?: string;
@@ -13,6 +14,7 @@ interface UpdateConfig {
   appStoreId?: string; // iOS App Store ID
   playStoreId?: string; // Android Play Store ID
   appStoreCountry?: string; // iOS App Store country code (e.g., 'us', 'gb', 'jp')
+  maxUpdatePrompts?: number; // Maximum number of times to show update alert
 }
 
 interface Version {
@@ -40,6 +42,7 @@ class InAppUpdate {
     checkMinorVersion: false,
     checkPatchVersion: false,
     appStoreCountry: 'us', // Default to US App Store
+    maxUpdatePrompts: 3, // Default to 3 prompts
   };
 
   private constructor() {}
@@ -205,6 +208,35 @@ class InAppUpdate {
     }
   }
 
+  private async getUpdatePromptCount(version: string): Promise<number> {
+    try {
+      const count = await AsyncStorage.getItem(
+        `update_prompt_count_${version}`,
+      );
+      return count ? parseInt(count, 10) : 0;
+    } catch (error) {
+      console.error('Error getting update prompt count:', error);
+      return 0;
+    }
+  }
+
+  private async incrementUpdatePromptCount(version: string): Promise<void> {
+    try {
+      const count = await this.getUpdatePromptCount(version);
+      await AsyncStorage.setItem(
+        `update_prompt_count_${version}`,
+        (count + 1).toString(),
+      );
+    } catch (error) {
+      console.error('Error incrementing update prompt count:', error);
+    }
+  }
+
+  private async shouldShowUpdateAlert(version: string): Promise<boolean> {
+    const count = await this.getUpdatePromptCount(version);
+    return count < (this.config.maxUpdatePrompts || 3);
+  }
+
   public async showUpdateAlertIfNeeded(currentVersion: string): Promise<void> {
     const updateInfo = await this.checkForUpdate(currentVersion);
 
@@ -213,9 +245,11 @@ class InAppUpdate {
       const latest = this.parseVersion(updateInfo.version);
 
       if (this.config.checkMajorVersion && current.major < latest.major) {
+        // Always show force update alert for major version changes
         this.showForceUpdateAlert();
-      } else {
+      } else if (await this.shouldShowUpdateAlert(updateInfo.version)) {
         this.showUpdateAlert();
+        await this.incrementUpdatePromptCount(updateInfo.version);
       }
     }
   }
