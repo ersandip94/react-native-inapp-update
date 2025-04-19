@@ -19,9 +19,9 @@ A React Native library for handling in-app updates on both iOS and Android platf
 1. Install the package:
 
 ```bash
-npm install react-native-inapp-update
+npm install @ersandip/react-native-inapp-update
 # or
-yarn add react-native-inapp-update
+yarn add @ersandip/react-native-inapp-update
 ```
 
 2. For iOS, no additional setup is required.
@@ -31,7 +31,7 @@ yarn add react-native-inapp-update
 ### Basic Setup
 
 ```typescript
-import InAppUpdate from 'react-native-inapp-update';
+import InAppUpdate from '@ersandip/react-native-inapp-update';
 
 // Configure the library (optional)
 InAppUpdate.getInstance().configure({
@@ -55,7 +55,7 @@ Add the following to your `App.tsx` or main component:
 
 ```typescript
 import React, { useEffect } from 'react';
-import InAppUpdate from 'react-native-inapp-update';
+import InAppUpdate from '@ersandip/react-native-inapp-update';
 
 function App() {
   useEffect(() => {

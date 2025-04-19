@@ -117,7 +117,19 @@ class InAppUpdate {
       Linking.openURL(url);
     } else {
       try {
-        const {InAppUpdateModule} = NativeModules;
+        const InAppUpdateModule = NativeModules.InAppUpdateModule;
+        if (!InAppUpdateModule) {
+          console.error('InAppUpdateModule is not available');
+          // Fallback to Play Store
+          const url = `market://details?id=${this.config.playStoreId}`;
+          Linking.openURL(url).catch(() => {
+            Linking.openURL(
+              `https://play.google.com/store/apps/details?id=${this.config.playStoreId}`,
+            );
+          });
+          return;
+        }
+
         const updateInfo = await InAppUpdateModule.checkForUpdate();
 
         if (updateInfo.updateAvailability === 1) {
@@ -137,6 +149,7 @@ class InAppUpdate {
           }
         }
       } catch (error) {
+        console.error('Error using in-app update:', error);
         // Fallback to Play Store on error
         const url = `market://details?id=${this.config.playStoreId}`;
         Linking.openURL(url).catch(() => {
@@ -307,7 +320,18 @@ class InAppUpdate {
         latestVersion = data.results[0].version;
       } else {
         // Android: Use Play Store in-app update
-        const {InAppUpdateModule} = NativeModules;
+        const InAppUpdateModule = NativeModules.InAppUpdateModule;
+        if (!InAppUpdateModule) {
+          console.error('InAppUpdateModule is not available');
+          // Return current version as latest if module is not available
+          return {
+            updateAvailable: false,
+            version: currentVersion,
+            isInAppUpdateAvailable: false,
+            isRequiredUpdate: false,
+          };
+        }
+
         const updateInfo = await InAppUpdateModule.checkForUpdate();
 
         latestVersion = updateInfo.version;
