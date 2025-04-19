@@ -12,6 +12,7 @@ A React Native library for handling in-app updates on both iOS and Android platf
 - Uses native Android in-app update feature
 - iOS App Store version checking with country/region support
 - Automatic version detection using device info
+- Custom version check using JSON file
 
 ## Installation
 
@@ -104,13 +105,23 @@ InAppUpdate.getInstance().configure({
   useCustomVersionCheck: true,
   showOptionalUpdates: false, // Don't show update alerts for non-required versions
 });
-
-// Example JSON file format (version.json):
-// {
-//   "minRequiredVersion": "1.5.0",
-//   "releaseNotes": "Bug fixes and improvements"
-// }
 ```
+
+#### Version JSON Format
+
+Create a JSON file with the following structure:
+
+```json
+{
+  "minRequiredVersion": "1.5.0",
+  "releaseNotes": "Bug fixes and performance improvements:\n- Fixed critical security issue\n- Improved app performance\n- Added new features for better user experience"
+}
+```
+
+- `minRequiredVersion`: The minimum version required for the app to function. Users with versions below this will be forced to update.
+- `releaseNotes`: Optional field containing information about the update that can be displayed to users.
+
+You can find a sample version file in the `examples/version.json` directory.
 
 When using custom version check:
 
@@ -122,35 +133,36 @@ When using custom version check:
 
 ## Configuration Options
 
-| Option                | Type     | Default                         | Description                                                                             |
-| --------------------- | -------- | ------------------------------- | --------------------------------------------------------------------------------------- |
-| forceUpdateTitle      | string   | 'Update Required'               | Title for force update alert                                                            |
-| forceUpdateMessage    | string   | 'A new version is required...'  | Message for force update alert                                                          |
-| updateTitle           | string   | 'Update Available'              | Title for optional update alert                                                         |
-| updateMessage         | string   | 'A new version is available...' | Message for optional update alert                                                       |
-| checkMajorVersion     | boolean  | true                            | Whether to check major version changes                                                  |
-| checkMinorVersion     | boolean  | false                           | Whether to check minor version changes                                                  |
-| checkPatchVersion     | boolean  | false                           | Whether to check patch version changes                                                  |
-| appStoreId            | string   | -                               | iOS App Store ID                                                                        |
-| playStoreId           | string   | -                               | Android package name                                                                    |
-| appStoreCountry       | string   | 'us'                            | iOS App Store country code (e.g., 'us', 'gb', 'jp')                                     |
-| maxUpdatePrompts      | number   | 3                               | Maximum number of times to show the update alert before waiting for next version change |
-| versionCheckUrl       | string   | -                               | URL to JSON file containing version information                                         |
-| useCustomVersionCheck | boolean  | false                           | Whether to use custom version check from JSON file                                      |
-| requiredVersions      | string[] | -                               | List of versions that require forced update                                             |
-| showOptionalUpdates   | boolean  | true                            | Whether to show update alerts for non-required versions                                 |
+| Option                | Type    | Default                         | Description                                                                             |
+| --------------------- | ------- | ------------------------------- | --------------------------------------------------------------------------------------- |
+| forceUpdateTitle      | string  | 'Update Required'               | Title for force update alert                                                            |
+| forceUpdateMessage    | string  | 'A new version is required...'  | Message for force update alert                                                          |
+| updateTitle           | string  | 'Update Available'              | Title for optional update alert                                                         |
+| updateMessage         | string  | 'A new version is available...' | Message for optional update alert                                                       |
+| checkMajorVersion     | boolean | true                            | Whether to check major version changes                                                  |
+| checkMinorVersion     | boolean | false                           | Whether to check minor version changes                                                  |
+| checkPatchVersion     | boolean | false                           | Whether to check patch version changes                                                  |
+| appStoreId            | string  | -                               | iOS App Store ID                                                                        |
+| playStoreId           | string  | -                               | Android package name                                                                    |
+| appStoreCountry       | string  | 'us'                            | iOS App Store country code (e.g., 'us', 'gb', 'jp')                                     |
+| maxUpdatePrompts      | number  | 3                               | Maximum number of times to show the update alert before waiting for next version change |
+| versionCheckUrl       | string  | -                               | URL to JSON file containing version information                                         |
+| useCustomVersionCheck | boolean | false                           | Whether to use custom version check from JSON file                                      |
+| showOptionalUpdates   | boolean | true                            | Whether to show update alerts for non-required versions                                 |
 
 ## How it Works
 
 - On iOS: The library checks the App Store for the latest version and compares it with the current version. You can specify the App Store country/region to check against.
 - On Android: The library checks if an in-app update is available through the Play Store API.
 - The library automatically detects the current app version using device info.
+- With custom version check: The library fetches version information from your JSON file and compares it with the current app version.
 
 ### Version Comparison
 
 - Major version changes (e.g., 1.0.0 to 2.0.0) trigger a force update
 - Minor and patch version changes show an optional update alert
 - Version checking can be configured through the `configure` method
+- With custom version check, any version below the minimum required version triggers a force update
 
 ## Third-Party Dependencies
 
