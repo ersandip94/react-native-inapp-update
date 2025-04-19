@@ -15,6 +15,9 @@ interface UpdateConfig {
   playStoreId?: string; // Android Play Store ID
   appStoreCountry?: string; // iOS App Store country code (e.g., 'us', 'gb', 'jp')
   maxUpdatePrompts?: number; // Maximum number of times to show update alert
+  versionCheckUrl?: string; // URL to JSON file containing version information
+  useCustomVersionCheck?: boolean; // Whether to use custom version check from JSON file
+  showOptionalUpdates?: boolean; // Whether to show update alerts for non-required versions
 }
 
 interface Version {
@@ -27,6 +30,12 @@ interface UpdateInfo {
   updateAvailable: boolean;
   version: string;
   isInAppUpdateAvailable?: boolean; // Only for Android
+  isRequiredUpdate: boolean;
+}
+
+interface CustomVersionInfo {
+  minRequiredVersion: string;
+  releaseNotes?: string;
 }
 
 class InAppUpdate {
@@ -43,6 +52,8 @@ class InAppUpdate {
     checkPatchVersion: false,
     appStoreCountry: 'us', // Default to US App Store
     maxUpdatePrompts: 3, // Default to 3 prompts
+    useCustomVersionCheck: false, // Default to using store version check
+    showOptionalUpdates: true, // Default to showing optional updates
   };
 
   private constructor() {}
@@ -164,7 +175,121 @@ class InAppUpdate {
     ]);
   }
 
+  /**
+   * Fetch version information from custom JSON file
+   */
+  private async fetchCustomVersionInfo(): Promise<CustomVersionInfo | null> {
+    if (!this.config.versionCheckUrl) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(this.config.versionCheckUrl);
+      const data = await response.json();
+
+      if (!data || !data.minRequiredVersion) {
+        console.error('Invalid version data format in JSON file');
+        return null;
+      }
+
+      return {
+        minRequiredVersion: data.minRequiredVersion,
+        releaseNotes: data.releaseNotes,
+      };
+    } catch (error) {
+      console.error('Error fetching custom version info:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if current version is below minimum required version
+   */
+  private isBelowMinRequiredVersion(
+    currentVersion: string,
+    minRequiredVersion: string,
+  ): boolean {
+    const current = this.parseVersion(currentVersion);
+    const minRequired = this.parseVersion(minRequiredVersion);
+
+    if (current.major < minRequired.major) {
+      return true;
+    }
+    if (
+      current.major === minRequired.major &&
+      current.minor < minRequired.minor
+    ) {
+      return true;
+    }
+    if (
+      current.major === minRequired.major &&
+      current.minor === minRequired.minor &&
+      current.patch < minRequired.patch
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
   public async checkForUpdate(currentVersion: string): Promise<UpdateInfo> {
+    try {
+      let isInAppUpdateAvailable = false;
+      let isRequiredUpdate = false;
+      let updateAvailable = false;
+      let latestVersion = currentVersion;
+
+      // Check if we should use custom version check
+      if (this.config.useCustomVersionCheck) {
+        const customVersionInfo = await this.fetchCustomVersionInfo();
+
+        if (customVersionInfo) {
+          // Check if current version is below minimum required version
+          isRequiredUpdate = this.isBelowMinRequiredVersion(
+            currentVersion,
+            customVersionInfo.minRequiredVersion,
+          );
+
+          // For non-required updates, only show if showOptionalUpdates is true
+          if (!isRequiredUpdate && this.config.showOptionalUpdates) {
+            // Check if there's a newer version available in the store
+            const storeInfo = await this.checkStoreVersion(currentVersion);
+            updateAvailable = storeInfo.updateAvailable;
+            isInAppUpdateAvailable = storeInfo.isInAppUpdateAvailable || false;
+            latestVersion = storeInfo.version;
+          } else {
+            updateAvailable = isRequiredUpdate;
+          }
+        } else {
+          // Fallback to store version check if custom check fails
+          return this.checkStoreVersion(currentVersion);
+        }
+      } else {
+        // Use store version check
+        return this.checkStoreVersion(currentVersion);
+      }
+
+      return {
+        updateAvailable,
+        version: latestVersion,
+        isInAppUpdateAvailable,
+        isRequiredUpdate,
+      };
+    } catch (error) {
+      console.error('Error checking for updates:', error);
+      return {
+        updateAvailable: false,
+        version: currentVersion,
+        isInAppUpdateAvailable: false,
+        isRequiredUpdate: false,
+      };
+    }
+  }
+
+  /**
+   * Check version from app stores
+   */
+  private async checkStoreVersion(currentVersion: string): Promise<UpdateInfo> {
     try {
       let latestVersion: string;
       let isInAppUpdateAvailable = false;
@@ -192,18 +317,22 @@ class InAppUpdate {
       const current = this.parseVersion(currentVersion);
       const latest = this.parseVersion(latestVersion);
       const updateAvailable = this.compareVersions(current, latest);
+      const isRequiredUpdate =
+        this.config.checkMajorVersion && current.major < latest.major;
 
       return {
         updateAvailable,
         version: latestVersion,
         isInAppUpdateAvailable,
+        isRequiredUpdate: isRequiredUpdate || false,
       };
     } catch (error) {
-      console.error('Error checking for updates:', error);
+      console.error('Error checking store version:', error);
       return {
         updateAvailable: false,
         version: currentVersion,
         isInAppUpdateAvailable: false,
+        isRequiredUpdate: false,
       };
     }
   }
@@ -241,11 +370,8 @@ class InAppUpdate {
     const updateInfo = await this.checkForUpdate(currentVersion);
 
     if (updateInfo.updateAvailable) {
-      const current = this.parseVersion(currentVersion);
-      const latest = this.parseVersion(updateInfo.version);
-
-      if (this.config.checkMajorVersion && current.major < latest.major) {
-        // Always show force update alert for major version changes
+      if (updateInfo.isRequiredUpdate) {
+        // Show force update alert for required updates
         this.showForceUpdateAlert();
       } else if (await this.shouldShowUpdateAlert(updateInfo.version)) {
         this.showUpdateAlert();
